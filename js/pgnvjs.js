@@ -221,23 +221,39 @@ var pgnBase = function (boardId, configuration) {
             primMove.promotion = sel;
             //primMove.promotion = 'q'    // Here a real selection should stand!!
         }
-        that.currentMove = that.mypgn.addMove(primMove, cur);
-        var move = that.mypgn.getMove(that.currentMove);
-        if (primMove.promotion) {
-            let pieces = {};
-            pieces[to] = null;
-            board.setPieces(pieces);
-            pieces[to] = {color: (move.turn == 'w' ? 'white' : 'black'), role: that.promMappings[primMove.promotion]};
-            board.setPieces(pieces);
-        }
-        if (move.notation.ep) {
-            let ep_field = to[0] + from[1];
-            let pieces = {};
-            pieces[ep_field] = null;
-            board.setPieces(pieces);
-        }
-        if (moveSpan(that.currentMove) === null) {
-            generateMove(that.currentMove, null, move, move.prev, document.getElementById(movesId), []);
+        var move;
+        if (hasMode('puzzle')) {
+            if (cur == undefined)  { cur = -1; }
+            cur += 1;
+            move = that.mypgn.getMove(cur);
+            if ((move.from == from) && (move.to == to)) {
+                // Successful
+                that.puzzleMessage.textContent = 'Successful move. Great!';
+                makeMove(null, cur, that.mypgn.getMove(cur).fen);
+            } else {
+                // Not successful
+                that.puzzleMessage.textContent = 'Sorry, not the best move. Try once again ...';
+                // What to do here to reset it??
+            }
+        } else { // only done in case of edit mode
+            that.currentMove = that.mypgn.addMove(primMove, cur);
+            move = that.mypgn.getMove(that.currentMove);
+            if (primMove.promotion) {
+                let pieces = {};
+                pieces[to] = null;
+                board.setPieces(pieces);
+                pieces[to] = {color: (move.turn == 'w' ? 'white' : 'black'), role: that.promMappings[primMove.promotion]};
+                board.setPieces(pieces);
+            }
+            if (move.notation.ep) {
+                let ep_field = to[0] + from[1];
+                let pieces = {};
+                pieces[ep_field] = null;
+                board.setPieces(pieces);
+            }
+            if (moveSpan(that.currentMove) === null) {
+                generateMove(that.currentMove, null, move, move.prev, document.getElementById(movesId), []);
+            }
         }
         unmarkMark(that.currentMove);
         updateUI(that.currentMove);
@@ -392,17 +408,25 @@ var pgnBase = function (boardId, configuration) {
             }
             // Add an error div to show errors
             that.errorDiv = createEle("div", boardId + "Error", 'error', null, divBoard);
+            if (hasMode('puzzle'))  {
+                that.puzzleIntro = createEle("div", boardId + "PuzzleIntro", 'puzzle', null, divBoard);
+                that.puzzleIntro.textContent = 'This is the puzzle intro.';
+            }
             createEle("div", headersId, "headers", theme, divBoard);
             var outerInnerBoardDiv = createEle("div", null, "outerBoard", null, divBoard);
             if (that.configuration.boardSize) {
                 outerInnerBoardDiv.style.width = that.configuration.boardSize;
             }
             var innerBoardDiv = createEle("div", innerBoardId, "board", theme, outerInnerBoardDiv);
-            if (hasMode('view') || hasMode('edit') ) {
+            if (hasMode('puzzle')) {
+                that.puzzleMessage = createEle('div', boardId + 'PuzzleMessage', 'puzzle', null, outerInnerBoardDiv);
+                that.puzzleMessage.textContent = 'Just to show that the puzzle message is there (and could be styled)';
+            }
+            if (hasMode('view') || hasMode('edit') || hasMode('puzzle') ) {
                 var buttonsBoardDiv = createEle("div", buttonsId, "buttons", theme, outerInnerBoardDiv);
                 generateViewButtons(buttonsBoardDiv);
             }
-            if ( (hasMode('edit') || hasMode('view')) && (that.configuration.showFen) ) {
+            if ( (hasMode('edit') || hasMode('view') || hasMode('puzzle')) && (that.configuration.showFen) ) {
                 var fenDiv = createEle("textarea", fenId, "fen", theme, outerInnerBoardDiv);
                 addEventListener(fenId, 'mousedown', function(e) {
 	                e = e || window.event;
@@ -421,7 +445,7 @@ var pgnBase = function (boardId, configuration) {
                     document.getElementById(fenId).readonly = true;
                 }
             }
-            if (hasMode('print') || hasMode('view') || hasMode('edit')) {
+            if (hasMode('print') || hasMode('view') || hasMode('edit') || hasMode('puzzle')) {
                 // Ensure that moves are scrollable (by styling CSS) when necessary
                 // To be scrollable, the height of the element has to be set
                 // TODO: Find a way to set the height, if all other parameters denote that it had to be set:
@@ -514,7 +538,7 @@ var pgnBase = function (boardId, configuration) {
         if (boardConfiguration.coordsInner) {
             el.classList.add('coords-inner');
         }
-        if (hasMode('edit')) {
+        if (hasMode('edit') || hasMode('puzzle')) {
             game.load(boardConfiguration.position);
             let toMove = (game.turn() == 'w') ? 'white' : 'black';
             board.set( {
@@ -625,6 +649,9 @@ var pgnBase = function (boardId, configuration) {
             span.appendChild(diaDiv);
             that.configuration.position = move.fen;
             pgnBoard(diaID, that.configuration);
+        }
+        if (hasMode('puzzle')) {
+            span.style.display = "none";
         }
         return currentCounter;
     };
@@ -750,6 +777,9 @@ var pgnBase = function (boardId, configuration) {
         // } else {
         //     board.set({fen: myMove.fen, lastMove: [myMove.from, myMove.to]});
         // }
+        if (hasMode('puzzle')) {
+            moveSpan(next).style.display = 'inline';
+        }
         board.set({fen: myMove.fen, lastMove: [myMove.from, myMove.to]});
         handlePromotion(myMove);
         board.setShapes(getShapes(myMove.commentDiag));
@@ -1133,6 +1163,36 @@ var pgnView = function(boardId, configuration) {
 };
 
 /**
+ * Defines the utility function to allow solve a puzzle. It allows to play through the moves,
+ * but only the defined solution. There are 2 ways to react on a move:
+ * 
+ * * Give feedback that the last move was not the right one, and restore the previous position
+ * * Give applaus, and show the move taken
+ * 
+ * At the end, the puzzle is solved.
+ * @param boardId the unique ID per HTML page
+ * @param configuration the configuration for chess, board and pgn.
+ *      See the configuration of `pgnPuzzle` for the board configuration. Relevant for pgn is:
+ *   pgn: the pgn as single string, or empty string (default)
+ * @returns {{chess: chess, getPgn: getPgn}} all utility functions available
+ */
+var pgnPuzzle = function(boardId, configuration) {
+    GLOB_SCHED.schedule(configuration.locale, 
+        () => {
+            var base = pgnBase(boardId, Object.assign({
+                mode: 'puzzle',
+                movable: { 
+                    free: false, 
+                    events: { after: function(orig, dest, meta) { base.onSnapEnd(orig, dest, meta); } } }, 
+                viewOnly: false}, configuration));
+            base.generateHTML();
+            var b = base.generateBoard();
+            base.generateMoves(b);
+        });
+};
+
+
+/**
  * Defines a utility function just to display a board (only). There are some similar
  * parameters to `pgnView`, but some are not necessary.
  * @param boardId needed for the inclusion of the board itself
@@ -1175,7 +1235,7 @@ var pgnEdit = function(boardId, configuration) {
     GLOB_SCHED.schedule(configuration.locale,  () => {
         let base = pgnBase(boardId, Object.assign(
             { showFen: true, mode: 'edit', 
-            movable: { 
+                movable: { 
                     free: false, 
                     events: { after: function(orig, dest, meta) { base.onSnapEnd(orig, dest, meta); } } }, 
                 viewOnly: false}, 

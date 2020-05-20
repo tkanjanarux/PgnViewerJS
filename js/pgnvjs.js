@@ -90,7 +90,8 @@ var pgnBase = function (boardId, configuration) {
         colorMarker: null,
         showResult: false,
         timeAnnotation: 'none',
-        notation: 'short'
+        notation: 'short',
+        analysis: false
     };
     that.promMappings = {q: 'queen', r: 'rook', b: 'bishop', n: 'knight'};
     that.configuration = Object.assign(Object.assign(defaults, PgnBaseDefaults), configuration);
@@ -108,6 +109,7 @@ var pgnBase = function (boardId, configuration) {
         return that.mypgn.possibleMoves(game);
     };
     let board;              // Will be set later, but has to be a known variable
+    let sf;
     // IDs needed for styling and adressing the HTML elements, only used if no markup is done by the user
     if (!hasMarkup()) {
         var headersId = boardId + 'Headers';
@@ -252,17 +254,8 @@ var pgnBase = function (boardId, configuration) {
         //board.set({fen: game.fen()});
         var cur = that.currentMove;
         let primMove = {from: from, to: to};
-        if ((that.mypgn.game.get(from).type == 'p') && ((to.substring(1, 2) == '8') || (to.substring(1, 2) == '1'))) {
-            let sel = await swal("Select the promotion figure", {
-                buttons: {
-                    queen: {text: "Queen", value: 'q'},
-                    rook: {text: "Rook", value: 'r'},
-                    bishop: {text: "Bishop", value: 'b'},
-                    knight: {text: 'Knight', value: 'n'}
-                }
-            });
-            primMove.promotion = sel;
-            //primMove.promotion = 'q'    // Here a real selection should stand!!
+        if ((that.mypgn.game.get(from).type == 'p') && ((to.substring(1, 2) == '6') || (to.substring(1, 2) == '3'))) {
+            primMove.promotion = 'q';
         }
         that.currentMove = that.mypgn.addMove(primMove, cur);
         var move = that.mypgn.getMove(that.currentMove);
@@ -295,6 +288,7 @@ var pgnBase = function (boardId, configuration) {
             fenView.value = move.fen;
         }
         toggleColorMarker();
+        if(that.configuration.analysis) analyseFen();
     };
 
     // Utility function for generating general HTML elements with id, class (with theme)
@@ -314,6 +308,19 @@ var pgnBase = function (boardId, configuration) {
             father.appendChild(ele);
         }
         return ele;
+    }
+
+    var fenToThfen = function(fen) {
+        return fen.replace(/q/g, 'm').replace(/Q/g, 'M').replace(/b/g, 's').replace(/B/g, 'S');
+    }
+
+    var analyseFen = function() {
+        let fen = game.fen();
+        let thfen = fenToThfen(fen);
+        sf.postMessage('ucinewgame');
+        sf.postMessage('isready');
+        sf.postMessage('position fen ' + thfen);
+        sf.postMessage('go depth 15');
     }
 
     /**
@@ -400,6 +407,15 @@ var pgnBase = function (boardId, configuration) {
             createEle("label", null, "labelAfterComment", theme, radio).appendChild(document.createTextNode("After"));
             createEle("textarea", null, "comment", theme, commentDiv);
         };
+        var generateGauge = function(board) {
+            var main = createEle("main", null, "analyse", theme, board);
+            if(that.configuration.width) main.style.width = that.configuration.width;
+            if(that.configuration.boardSize) main.style.width = that.configuration.boardSize;
+            var div = createEle("div", null, "eval-gauge", theme, main);
+            var cp = createEle("span", "cp", "cp black", theme, div);
+            cp.innerText = "0.0";
+            var gauge = createEle("div", "gauge", "black", theme, div);
+        }
         if (hasMarkup()) {
             if (boardId.header) {
                 headersId = boardId.header; // Real header will be built later
@@ -439,6 +455,10 @@ var pgnBase = function (boardId, configuration) {
             // Add layout for class if configured
             if (that.configuration.layout) {
                 divBoard.classList.add('layout-' + that.configuration.layout);
+            }
+            // Add gauge if analysis enabled
+            if(that.configuration.analysis) {
+                generateGauge(divBoard);
             }
             // Add an error div to show errors
             that.errorDiv = createEle("div", boardId + "Error", 'error', null, divBoard);
@@ -528,6 +548,75 @@ var pgnBase = function (boardId, configuration) {
             var endDiv = createEle("div", null, "endBoard", null, divBoard);
         }
     };
+    var generateStockfish = function () {
+        const EVAL_REGEX = new RegExp(''
+            + /^info depth (\d+) seldepth \d+ multipv (\d+) /.source
+            + /score (cp|mate) ([-\d]+) /.source
+            + /(?:(upper|lower)bound )?nodes (\d+) nps \S+ /.source
+            + /(?:hashfull \d+ )?(?:tbhits \d+ )?time (\S+) /.source
+            + /pv (.+)/.source);
+
+        function arrow(orig, dest) {
+            board.setShapes([{ orig: orig, dest: dest, brush: 'blue' }]);
+        }
+
+        function ceval(text) {
+            if (text.startsWith('id name ')) that.engineName = text.substring('id name '.length);
+            else if (text.startsWith('bestmove ')) {
+                return;
+            }
+
+            let matches = text.match(EVAL_REGEX);
+            if (!matches) return;
+
+            let depth = parseInt(matches[1]),
+                multiPv = parseInt(matches[2]),
+                isMate = matches[3] === 'mate',
+                ev = parseInt(matches[4]),
+                evalType = matches[5],
+                nodes = parseInt(matches[6]),
+                elapsedMs = parseInt(matches[7]),
+                moves = matches[8].split(' ');
+
+            let m = moves[0],
+                orig = m.substring(0, 2),
+                dest = m.substring(2, 4);
+
+            let color = game.turn(),
+                winingChance = povChances(color, ev),
+                blackPercentage = 0.5 - (winingChance * 0.5),
+                winningColor = winingChance >= 0 ? 'white' : 'black',
+                losingColor = winingChance < 0 ? 'white' : 'black';
+
+            
+            arrow(orig, dest);
+            document.getElementById('gauge').style.width = (blackPercentage*100).toString() + "%";
+
+            let cpEle = document.getElementById('cp');
+            removeClass(cpEle, losingColor);
+            addClass(cpEle, winningColor);
+            cpEle.innerText = (color === 'w' ? ev : -ev) / 100;
+        }
+
+        var wasmSupported = typeof WebAssembly === 'object' && WebAssembly.validate(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
+
+        sf = new Worker(wasmSupported ? 'node_modules/fairy-stockfish.js/stockfish.wasm.js' : 'node_modules/fairy-stockfish.js/stockfish.js');
+
+        sf.addEventListener('message', function (e) {
+            console.log(e.data);
+            ceval(e.data);
+        });
+
+        let thfen = fenToThfen(fen);
+
+        sf.postMessage('uci');
+        setTimeout(() => {
+            sf.postMessage('setoption name UCI_AnalyseMode value true');
+            sf.postMessage('setoption name Analysis Contempt value Off');
+            sf.postMessage('setoption name UCI_Variant value makruk');
+            // sf.postMessage('setoption name MultiPV value 2');
+        }, 1000);
+    }
 
     /**
      * Generate the board that uses the unique innerBoardId and the part of the configuration
@@ -893,6 +982,8 @@ var pgnBase = function (boardId, configuration) {
         }
         toggleColorMarker();
         updateUI(next);
+
+        if(that.configuration.analysis) analyseFen();
     };
 
     /**
@@ -1222,6 +1313,7 @@ var pgnBase = function (boardId, configuration) {
         generateHTML: generateHTML,
         generateBoard: generateBoard,
         generateMoves: generateMoves,
+        generateStockfish: generateStockfish,
         onSnapEnd: onSnapEnd
     };
     window.pgnTestRegistry[boardId] = ret;
@@ -1311,6 +1403,7 @@ var pgnEdit = function (boardId, configuration) {
         base.generateHTML();
         let board = base.generateBoard();
         base.generateMoves(board);
+        if(configuration.analysis) base.generateStockfish();
         return { base, board };
     });
 };

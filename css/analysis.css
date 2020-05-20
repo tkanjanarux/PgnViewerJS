@@ -1,0 +1,30 @@
+.analyse .eval-gauge {
+  grid-area: gauge;
+  display: block;
+}
+.eval-gauge {
+  width: var(--gauge-gap);
+  position: relative;
+  background: #eee;
+  overflow: hidden;
+  height: 25px;
+}
+.eval-gauge .cp {
+  position: absolute;
+  line-height: 25px;
+  z-index: 1;
+}
+.eval-gauge .cp.black {
+  color: white;
+  left: 2px;
+}
+.eval-gauge .cp.white {
+  color: black;
+  right: 2px;
+}
+.eval-gauge div.black {
+  width: 50%;
+  height: 100%;
+  background: #888;
+  transition: height 1s;
+}

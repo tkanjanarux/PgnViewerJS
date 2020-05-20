@@ -402,3 +402,41 @@
 .uscf  cg-board piece.king.black {
   background-image: url('../img/chesspieces/uscf/bK.png');
 }
+
+/* Makruk */
+.makruk  cg-board piece.pawn.white {
+  background-image: url('../img/chesspieces/makruk/wP.png');
+}
+.makruk  cg-board piece.bishop.white {
+  background-image: url('../img/chesspieces/makruk/wB.png');
+}
+.makruk  cg-board piece.knight.white {
+  background-image: url('../img/chesspieces/makruk/wN.png');
+}
+.makruk  cg-board piece.rook.white {
+  background-image: url('../img/chesspieces/makruk/wR.png');
+}
+.makruk  cg-board piece.queen.white {
+  background-image: url('../img/chesspieces/makruk/wQ.png');
+}
+.makruk  cg-board piece.king.white {
+  background-image: url('../img/chesspieces/makruk/wK.png');
+}
+.makruk  cg-board piece.pawn.black {
+  background-image: url('../img/chesspieces/makruk/bP.png');
+}
+.makruk  cg-board piece.bishop.black {
+  background-image: url('../img/chesspieces/makruk/bB.png');
+}
+.makruk  cg-board piece.knight.black {
+  background-image: url('../img/chesspieces/makruk/bN.png');
+}
+.makruk  cg-board piece.rook.black {
+  background-image: url('../img/chesspieces/makruk/bR.png');
+}
+.makruk  cg-board piece.queen.black {
+  background-image: url('../img/chesspieces/makruk/bQ.png');
+}
+.makruk  cg-board piece.king.black {
+  background-image: url('../img/chesspieces/makruk/bK.png');
+}

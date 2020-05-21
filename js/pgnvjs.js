@@ -564,16 +564,24 @@ var pgnBase = function (boardId, configuration) {
 
         let tmpGame = new Chess();
 
-        function updateGauge({winingChance = 0, color, ev}) {
+        function updateGauge({winingChance = 0, color, ev, isMate}) {
             let blackPercentage = 0.5 - (winingChance * 0.5),
                 winningColor = winingChance >= 0 ? 'white' : 'black',
                 losingColor = winingChance < 0 ? 'white' : 'black';
+            if(isMate) {
+                let isWhiteWin = color === 'w' && ev > 0 || color === 'b' && ev < 0;
+                blackPercentage = isWhiteWin ? 0 : 1;
+                winningColor = isWhiteWin ? 'white' : 'black',
+                losingColor = isWhiteWin ? 'black' : 'white';
+                if(color === 'b') ev = -ev;
+            }
 
             document.getElementById('gauge').style.width = (blackPercentage*100).toString() + "%";
             let cpEle = document.getElementById('cp');
             removeClass(cpEle, losingColor);
             addClass(cpEle, winningColor);
             cpEle.innerText = (color === 'w' ? ev : -ev) / 100;
+            if(isMate) cpEle.innerText = `รุกฆาตใน ${ev} ตา\n`;
         }
 
         function updateArrow(move, brush = 'blue') {
@@ -582,8 +590,10 @@ var pgnBase = function (boardId, configuration) {
                 board.setShapes([{ orig: orig, dest: dest, brush: brush }]);
         }
 
-        function updateSuggestion({suggestMoves, depth}) {
-            document.getElementById('suggest').innerText = (depth !== 15 ? 'กำลังคำนวน\n' : '') + suggestMoves.slice(0,10).map((move) => move.san);
+        function updateSuggestion({suggestMoves, depth, isMate, ev}) {
+            let text = '';
+            if(isMate && depth === 15) text += `รุกฆาตใน ${ev} ตา\n`
+            document.getElementById('suggest').innerText = text + (depth !== 15 ? 'กำลังคำนวน\n' : '') + suggestMoves.slice(0,10).map((move) => move.san);
         }
 
         function updateLastMove(notation, verdict) {
@@ -665,7 +675,7 @@ var pgnBase = function (boardId, configuration) {
 
                 if(promotion === 'm') toMove.promotion = 'q';
                 let m = tmpGame.move(toMove);
-                
+
                 if(m) {
                     m.fen = tmpGame.fen();
                     suggestMoves.push(m);
@@ -676,7 +686,7 @@ var pgnBase = function (boardId, configuration) {
                 depth,
                 multiPv,
                 isMate,
-                ev: color === 'b' ? -ev : ev,
+                ev: color === 'b' && !isMate ? -ev : ev,
                 evalType,
                 nodes,
                 elapsedMs,
@@ -704,17 +714,19 @@ var pgnBase = function (boardId, configuration) {
                 if(evalData.depth === 15) {
                     evalMove.ev = evalData.ev;
                     evalMove.nextBestmove = evalData.suggestMoves[0].san;
-                    let prevMove = that.mypgn.getMove(that.currentMove-1);
+                    let prevMove = that.mypgn.getMove(evalMove.prev);
                     if(prevMove && prevMove.ev) {
                         let shift = -povDiff(evalMove.turn, evalMove.ev, prevMove.ev),
                             verdict = 'goodMove',
                             bestmove = prevMove.nextBestmove;
-                        if(evalMove.notation.notation === bestmove) verdict = 'ดีมาก';
-                        else if (shift < 0.025) verdict = 'ดี';
-                        else if (shift < 0.06) verdict = 'ไม่ดี';
-                        else if (shift < 0.14) verdict = 'ผิด';
-                        else verdict = 'ผิดมาก';
-                        updateLastMove(evalMove.notation.notation, verdict);
+                        if(!evalData.isMate) {
+                            if(evalMove.notation.notation === bestmove) verdict = 'ดีมาก';
+                            else if (shift < 0.025 && Math.abs(evalMove.ev - prevMove.ev) < 100) verdict = 'ดี';
+                            else if (shift < 0.06) verdict = 'ไม่ดี';
+                            else if (shift < 0.14) verdict = 'ผิด';
+                            else verdict = 'ผิดมาก';
+                            updateLastMove(evalMove.notation.notation, verdict);
+                        }
                     }
                 }
             }

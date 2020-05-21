@@ -317,6 +317,7 @@ var pgnBase = function (boardId, configuration) {
     var analyseFen = function() {
         let fen = game.fen();
         let thfen = fenToThfen(fen);
+        sf.postMessage('stop');
         sf.postMessage('ucinewgame');
         sf.postMessage('isready');
         sf.postMessage('position fen ' + thfen);
@@ -522,6 +523,10 @@ var pgnBase = function (boardId, configuration) {
                 if (that.configuration.movesHeight) {
                     movesDiv.style.height = that.configuration.movesHeight;
                 }
+
+                if (hasMode('edit') && that.configuration.analysis) {
+                    var suggestMovesDiv = createEle("p", "suggest", "suggest", null, movesDiv);
+                }
             }
             if (hasMode('edit')) {
                 var editButtonsBoardDiv = createEle("div", "edit" + buttonsId, "edit", theme, divBoard);
@@ -556,11 +561,70 @@ var pgnBase = function (boardId, configuration) {
             + /(?:hashfull \d+ )?(?:tbhits \d+ )?time (\S+) /.source
             + /pv (.+)/.source);
 
-        function arrow(orig, dest) {
-            board.setShapes([{ orig: orig, dest: dest, brush: 'blue' }]);
+        let tmpGame = new Chess();
+
+        function updateGauge({winingChance = 0, color, ev}) {
+            let blackPercentage = 0.5 - (winingChance * 0.5),
+                winningColor = winingChance >= 0 ? 'white' : 'black',
+                losingColor = winingChance < 0 ? 'white' : 'black';
+
+            document.getElementById('gauge').style.width = (blackPercentage*100).toString() + "%";
+            let cpEle = document.getElementById('cp');
+            removeClass(cpEle, losingColor);
+            addClass(cpEle, winningColor);
+            cpEle.innerText = (color === 'w' ? ev : -ev) / 100;
+        }
+
+        function updateArrow(move, brush = 'blue') {
+            let orig = move.substring(0, 2),
+                dest = move.substring(2, 4);
+                board.setShapes([{ orig: orig, dest: dest, brush: brush }]);
+        }
+
+        function updateSuggestion({suggestMoves, depth}) {
+            document.getElementById('suggest').innerText = (depth !== 15 ? 'กำลังคำนวน\n' : '') + suggestMoves.slice(0,10).map((move) => move.san);
+        }
+
+        function toPov(color, diff) {
+            return color === 'w' ? diff : -diff;
+        }
+        /**
+         * https://graphsketch.com/?eqn1_color=1&eqn1_eqn=100+*+%282+%2F+%281+%2B+exp%28-0.005+*+x%29%29+-+1%29&eqn2_color=2&eqn2_eqn=100+*+%282+%2F+%281+%2B+exp%28-0.004+*+x%29%29+-+1%29&eqn3_color=3&eqn3_eqn=&eqn4_color=4&eqn4_eqn=&eqn5_color=5&eqn5_eqn=&eqn6_color=6&eqn6_eqn=&x_min=-1000&x_max=1000&y_min=-100&y_max=100&x_tick=100&y_tick=10&x_label_freq=2&y_label_freq=2&do_grid=0&do_grid=1&bold_labeled_lines=0&bold_labeled_lines=1&line_width=4&image_w=850&image_h=525
+         */
+        function rawWinningChances(cp) {
+            return 2 / (1 + Math.exp(-0.004 * cp)) - 1;
+        }
+        
+        function cpWinningChances(cp) {
+            return rawWinningChances(Math.min(Math.max(-1000, cp), 1000));
+        }
+        
+        function mateWinningChances(mate) {
+        var cp = (21 - Math.min(10, Math.abs(mate))) * 100;
+        var signed = cp * (mate > 0 ? 1 : -1);
+            return rawWinningChances(signed);
+        }
+        
+        function evalWinningChances(ev) {
+            return typeof ev.mate !== 'undefined' ? mateWinningChances(ev.mate) : cpWinningChances(ev);
+        }
+        
+        // winning chances for a color
+        // 1  infinitely winning
+        // -1 infinitely losing
+        function povChances(color, ev) {
+            return toPov(color, evalWinningChances(ev));
+        }
+        
+        // computes the difference, in winning chances, between two evaluations
+        // 1  = e1 is infinately better than e2
+        // -1 = e1 is infinately worse  than e2
+        function povDiff(color, e1, e2) {
+            return (povChances(color, e1) - povChances(color, e2)) / 2;
         }
 
         function ceval(text) {
+
             if (text.startsWith('id name ')) that.engineName = text.substring('id name '.length);
             else if (text.startsWith('bestmove ')) {
                 return;
@@ -578,24 +642,36 @@ var pgnBase = function (boardId, configuration) {
                 elapsedMs = parseInt(matches[7]),
                 moves = matches[8].split(' ');
 
-            let m = moves[0],
-                orig = m.substring(0, 2),
-                dest = m.substring(2, 4);
-
             let color = game.turn(),
-                winingChance = povChances(color, ev),
-                blackPercentage = 0.5 - (winingChance * 0.5),
-                winningColor = winingChance >= 0 ? 'white' : 'black',
-                losingColor = winingChance < 0 ? 'white' : 'black';
+                winingChance = povChances(color, ev);
 
+            tmpGame.load(game.fen());
+            let suggestMoves = [];
+
+            moves.forEach((move) => {
+                let from = move.substring(0, 2),
+                    to = move.substring(2, 4),
+                    m = tmpGame.move({to, from});
+                    if(m) {
+                        m.fen = tmpGame.fen();
+                        suggestMoves.push(m);
+                    }
+            });
             
-            arrow(orig, dest);
-            document.getElementById('gauge').style.width = (blackPercentage*100).toString() + "%";
-
-            let cpEle = document.getElementById('cp');
-            removeClass(cpEle, losingColor);
-            addClass(cpEle, winningColor);
-            cpEle.innerText = (color === 'w' ? ev : -ev) / 100;
+            return {
+                depth,
+                multiPv,
+                isMate,
+                ev: color === 'b' ? -ev : ev,
+                evalType,
+                nodes,
+                elapsedMs,
+                moves,
+                winingChance,
+                color,
+                suggestMoves
+            }
+            
         }
 
         var wasmSupported = typeof WebAssembly === 'object' && WebAssembly.validate(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
@@ -603,8 +679,27 @@ var pgnBase = function (boardId, configuration) {
         sf = new Worker(wasmSupported ? 'node_modules/fairy-stockfish.js/stockfish.wasm.js' : 'node_modules/fairy-stockfish.js/stockfish.js');
 
         sf.addEventListener('message', function (e) {
-            console.log(e.data);
-            ceval(e.data);
+            // console.log(e.data);
+            let evalData = ceval(e.data);
+            if(evalData) {
+                updateGauge(evalData);
+                updateArrow(evalData.moves[0]);
+                updateSuggestion(evalData);
+                if(evalData.depth === 15) {
+                    let evalMove = that.mypgn.getMove(that.currentMove);
+                    evalMove.ev = evalData.ev;
+                    let prevMove = that.mypgn.getMove(that.currentMove-1);
+                    if(prevMove && prevMove.ev) {
+                        let shift = -povDiff(evalMove.turn, evalMove.ev, prevMove.ev),
+                            verdict = 'goodMove';
+                        if (shift < 0.025) verdict = 'goodMove';
+                        else if (shift < 0.06) verdict = 'inaccuracy';
+                        else if (shift < 0.14) verdict = 'mistake';
+                        else verdict = 'blunder';
+                        console.log(verdict);
+                    }
+                }
+            }
         });
 
         let thfen = fenToThfen(fen);

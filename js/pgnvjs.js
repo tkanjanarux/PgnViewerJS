@@ -660,11 +660,16 @@ var pgnBase = function (boardId, configuration) {
             moves.forEach((move) => {
                 let from = move.substring(0, 2),
                     to = move.substring(2, 4),
-                    m = tmpGame.move({to, from});
-                    if(m) {
-                        m.fen = tmpGame.fen();
-                        suggestMoves.push(m);
-                    }
+                    promotion = move.substring(4, 5),
+                    toMove = {to, from};
+
+                if(promotion === 'm') toMove.promotion = 'q';
+                let m = tmpGame.move(toMove);
+                
+                if(m) {
+                    m.fen = tmpGame.fen();
+                    suggestMoves.push(m);
+                }
             });
             
             return {

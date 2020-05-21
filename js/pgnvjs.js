@@ -457,14 +457,14 @@ var pgnBase = function (boardId, configuration) {
             if (that.configuration.layout) {
                 divBoard.classList.add('layout-' + that.configuration.layout);
             }
-            // Add gauge if analysis enabled
-            if(that.configuration.analysis) {
-                generateGauge(divBoard);
-            }
             // Add an error div to show errors
             that.errorDiv = createEle("div", boardId + "Error", 'error', null, divBoard);
             createEle("div", headersId, "headers", theme, divBoard);
             var outerInnerBoardDiv = createEle("div", null, "outerBoard", null, divBoard);
+            // Add gauge if analysis enabled
+            if(that.configuration.analysis) {
+                generateGauge(outerInnerBoardDiv);
+            }
             let boardAndDiv = createEle('div', null, 'boardAnd', theme, outerInnerBoardDiv);
             if (that.configuration.boardSize) {
                 outerInnerBoardDiv.style.width = that.configuration.boardSize;
@@ -525,6 +525,7 @@ var pgnBase = function (boardId, configuration) {
                 }
 
                 if (hasMode('edit') && that.configuration.analysis) {
+                    var lastMoveDiv = createEle("div", "lastmove", "lastmove", null, movesDiv);
                     var suggestMovesDiv = createEle("p", "suggest", "suggest", null, movesDiv);
                 }
             }
@@ -583,6 +584,14 @@ var pgnBase = function (boardId, configuration) {
 
         function updateSuggestion({suggestMoves, depth}) {
             document.getElementById('suggest').innerText = (depth !== 15 ? 'กำลังคำนวน\n' : '') + suggestMoves.slice(0,10).map((move) => move.san);
+        }
+
+        function updateLastMove(notation, verdict) {
+            let text = `แต้มล่าสุด : ${notation}`;
+            if(verdict) {
+                text += ` เป็นแต้มที่${verdict}`;
+            }
+            document.getElementById('lastmove').innerText = text;
         }
 
         function toPov(color, diff) {
@@ -685,18 +694,22 @@ var pgnBase = function (boardId, configuration) {
                 updateGauge(evalData);
                 updateArrow(evalData.moves[0]);
                 updateSuggestion(evalData);
+                let evalMove = that.mypgn.getMove(that.currentMove);
+                updateLastMove(evalMove.notation.notation);
                 if(evalData.depth === 15) {
-                    let evalMove = that.mypgn.getMove(that.currentMove);
                     evalMove.ev = evalData.ev;
+                    evalMove.nextBestmove = evalData.suggestMoves[0].san;
                     let prevMove = that.mypgn.getMove(that.currentMove-1);
                     if(prevMove && prevMove.ev) {
                         let shift = -povDiff(evalMove.turn, evalMove.ev, prevMove.ev),
-                            verdict = 'goodMove';
-                        if (shift < 0.025) verdict = 'goodMove';
-                        else if (shift < 0.06) verdict = 'inaccuracy';
-                        else if (shift < 0.14) verdict = 'mistake';
-                        else verdict = 'blunder';
-                        console.log(verdict);
+                            verdict = 'goodMove',
+                            bestmove = prevMove.nextBestmove;
+                        if(evalMove.notation.notation === bestmove) verdict = 'ดีมาก';
+                        else if (shift < 0.025) verdict = 'ดี';
+                        else if (shift < 0.06) verdict = 'ไม่ดี';
+                        else if (shift < 0.14) verdict = 'ผิด';
+                        else verdict = 'ผิดมาก';
+                        updateLastMove(evalMove.notation.notation, verdict);
                     }
                 }
             }

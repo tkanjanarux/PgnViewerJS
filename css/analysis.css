@@ -1,3 +1,4 @@
+
 .analyse .eval-gauge {
   grid-area: gauge;
   display: block;
@@ -5,7 +6,7 @@
 .eval-gauge {
   width: var(--gauge-gap);
   position: relative;
-  background: #eee;
+  background: #f5f5f5;
   overflow: hidden;
   height: 25px;
 }
@@ -27,4 +28,117 @@
   height: 100%;
   background: #888;
   transition: height 1s;
+}
+.suggest {
+  word-break: break-word;
+}
+span#svg {
+  display: none;
+}
+a {
+  position: relative;
+}
+
+a:hover span#svg {
+  display: inline;
+  position: absolute;
+}
+.feedback-container {
+  background-color: rgb(241, 241, 241);
+  border-bottom-color: rgb(241, 241, 241);
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  box-sizing: border-box;
+  color: rgb(49, 46, 43);
+  margin-left: 20px;
+}
+body {
+  display: flex;
+  background-color: #312e2b;
+  color: #f5f5f5;
+  justify-content: center;
+}
+.feedback {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  max-width: 100%;
+  padding: 0 15px;
+}
+.feedback-line {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  overflow: hidden;
+}
+.lastmove {
+  align-items: flex-start;
+  display: flex;
+  flex: 1 0 100%;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 10px 0;
+}
+.suggest {
+  position: relative;
+  width: calc(100% - 6.4rem);
+  border-top: 0.1rem solid #e8e7e6;
+  border-bottom: 0.1rem solid #e8e7e6;
+  font-size: 14px;
+  overflow: hidden;
+  padding: 10px 0;
+  position: relative;
+  text-indent: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+.buttons {
+  display: flex;
+  justify-content: center;
+}
+.moves {
+  overflow-y: scroll;
+  margin-bottom: 10px;
+  background-color: #fefefe;
+  box-sizing: border-box;
+}
+.moves .move a {
+  box-sizing: border-box;
+  color: rgb(102, 100, 99);
+  font-family: -apple-system, system-ui, "Segoe UI", Helvetica, Arial,
+    sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  margin-bottom: 7px;
+  outline-color: rgb(102, 100, 99);
+  outline-style: none;
+  outline-width: 0px;
+}
+
+.moveNumber {
+  box-sizing: border-box;
+  color: rgb(38, 33, 27);
+  cursor: pointer;
+  display: inline;
+  font-family: -apple-system, system-ui, "Segoe UI", Helvetica, Arial,
+    sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  outline-color: rgb(38, 33, 27);
+  outline-style: none;
+  outline-width: 0px;
+  position: relative;
+  z-index: 2;
+}
+
+.edit {
+  display: none;
+}
+.comment {
+  display: none;
 }

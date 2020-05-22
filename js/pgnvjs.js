@@ -288,7 +288,7 @@ var pgnBase = function (boardId, configuration) {
             fenView.value = move.fen;
         }
         toggleColorMarker();
-        if(that.configuration.analysis) analyseFen();
+        if(that.configuration.analysis) sf.analyseFen();
     };
 
     // Utility function for generating general HTML elements with id, class (with theme)
@@ -312,16 +312,6 @@ var pgnBase = function (boardId, configuration) {
 
     var fenToThfen = function(fen) {
         return fen.replace(/q/g, 'm').replace(/Q/g, 'M').replace(/b/g, 's').replace(/B/g, 'S');
-    }
-
-    var analyseFen = function() {
-        let fen = game.fen();
-        let thfen = fenToThfen(fen);
-        sf.postMessage('stop');
-        sf.postMessage('ucinewgame');
-        sf.postMessage('isready');
-        sf.postMessage('position fen ' + thfen);
-        sf.postMessage('go depth 15');
     }
 
     /**
@@ -482,10 +472,6 @@ var pgnBase = function (boardId, configuration) {
             if (that.configuration.colorMarker && (!hasMode('print'))) {
                 createEle("div", colorMarkerId, 'colorMarker' + " " + that.configuration.colorMarker, theme, boardAndDiv);
             }
-            if (hasMode('view') || hasMode('edit')) {
-                var buttonsBoardDiv = createEle("div", buttonsId, "buttons", theme, outerInnerBoardDiv);
-                generateViewButtons(buttonsBoardDiv);
-            }
             if ((hasMode('edit') || hasMode('view')) && (that.configuration.showFen)) {
                 var fenDiv = createEle("textarea", fenId, "fen", theme, outerInnerBoardDiv);
                 addEventListener(fenId, 'mousedown', function (e) {
@@ -512,7 +498,17 @@ var pgnBase = function (boardId, configuration) {
                 // To be scrollable, the height of the element has to be set
                 // TODO: Find a way to set the height, if all other parameters denote that it had to be set:
                 // scrollable == true; layout == left|right
-                var movesDiv = createEle("div", movesId, "moves", null, divBoard);
+                var moveContainerDiv = divBoard;
+
+                if (hasMode('edit') && that.configuration.analysis) {
+                    moveContainerDiv = createEle("div", null, "feedback-container", null, divBoard);
+                    moveContainerDiv.style.width = that.configuration.movesWidth;
+                    var feedbackDiv = createEle("div", null, "feedback", null, moveContainerDiv);
+                    var feedbackLineDiv = createEle("div", null, "feedback-line", null, feedbackDiv);
+                    var lastMoveDiv = createEle("div", "lastmove", "lastmove", null, feedbackLineDiv);
+                    var suggestMovesDiv = createEle("div", "suggest", "suggest", null, feedbackLineDiv);
+                }
+                var movesDiv = createEle("div", movesId, "moves", null, moveContainerDiv);
 
                 if (that.configuration.movesWidth) {
                     movesDiv.style.width = that.configuration.movesWidth;
@@ -523,11 +519,11 @@ var pgnBase = function (boardId, configuration) {
                 if (that.configuration.movesHeight) {
                     movesDiv.style.height = that.configuration.movesHeight;
                 }
-
-                if (hasMode('edit') && that.configuration.analysis) {
-                    var lastMoveDiv = createEle("div", "lastmove", "lastmove", null, movesDiv);
-                    var suggestMovesDiv = createEle("p", "suggest", "suggest", null, movesDiv);
+                if (hasMode('view') || hasMode('edit')) {
+                    var buttonsBoardDiv = createEle("div", buttonsId, "buttons", theme, moveContainerDiv);
+                    generateViewButtons(buttonsBoardDiv);
                 }
+
             }
             if (hasMode('edit')) {
                 var editButtonsBoardDiv = createEle("div", "edit" + buttonsId, "edit", theme, divBoard);
@@ -593,15 +589,15 @@ var pgnBase = function (boardId, configuration) {
         function updateSuggestion({suggestMoves, depth, isMate, ev}) {
             let text = '';
             if(isMate && depth === 15) text += `รุกฆาตใน ${ev} ตา\n`
-            document.getElementById('suggest').innerText = text + (depth !== 15 ? 'กำลังคำนวน\n' : '') + suggestMoves.slice(0,10).map((move) => move.san);
+            document.getElementById('suggest').innerText = text + suggestMoves.slice(0,10).map((move) => move.san).join(', ');
         }
 
-        function updateLastMove(notation, verdict) {
+        function updateLastMove({notation, verdict, depth}) {
             let text = `แต้มล่าสุด : ${notation}`;
             if(verdict) {
                 text += ` เป็นแต้มที่${verdict}`;
             }
-            document.getElementById('lastmove').innerText = text;
+            document.getElementById('lastmove').innerText = text + (depth !== 15 ? ' กำลังคำนวณ\n' : '');
         }
 
         function toPov(color, diff) {
@@ -698,6 +694,16 @@ var pgnBase = function (boardId, configuration) {
             
         }
 
+        var analyseFen = function() {
+            let fen = game.fen();
+            let thfen = fenToThfen(fen);
+            sf.postMessage('stop');
+            sf.postMessage('ucinewgame');
+            sf.postMessage('isready');
+            sf.postMessage('position fen ' + thfen);
+            sf.postMessage('go depth 15');
+        }
+
         var wasmSupported = typeof WebAssembly === 'object' && WebAssembly.validate(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
 
         sf = new Worker(wasmSupported ? 'node_modules/fairy-stockfish.js/stockfish.wasm.js' : 'node_modules/fairy-stockfish.js/stockfish.js');
@@ -710,7 +716,7 @@ var pgnBase = function (boardId, configuration) {
                 updateArrow(evalData.moves[0]);
                 updateSuggestion(evalData);
                 let evalMove = that.mypgn.getMove(that.currentMove);
-                updateLastMove(evalMove.notation.notation);
+                updateLastMove({notation: evalMove.notation.notation, depth: evalData.depth});
                 if(evalData.depth === 15) {
                     evalMove.ev = evalData.ev;
                     evalMove.nextBestmove = evalData.suggestMoves[0].san;
@@ -721,11 +727,12 @@ var pgnBase = function (boardId, configuration) {
                             bestmove = prevMove.nextBestmove;
                         if(!evalData.isMate) {
                             if(evalMove.notation.notation === bestmove) verdict = 'ดีมาก';
-                            else if (shift < 0.025 && Math.abs(evalMove.ev - prevMove.ev) < 100) verdict = 'ดี';
+                            else if (shift < -0.025) verdict = 'ดี';
+                            else if (shift < 0.025) verdict = 'ปกติ';
                             else if (shift < 0.06) verdict = 'ไม่ดี';
                             else if (shift < 0.14) verdict = 'ผิด';
                             else verdict = 'ผิดมาก';
-                            updateLastMove(evalMove.notation.notation, verdict);
+                            updateLastMove({notation: evalMove.notation.notation, verdict, depth: evalData.depth});
                         }
                     }
                 }
@@ -741,6 +748,8 @@ var pgnBase = function (boardId, configuration) {
             sf.postMessage('setoption name UCI_Variant value makruk');
             // sf.postMessage('setoption name MultiPV value 2');
         }, 1000);
+
+        sf.analyseFen = analyseFen;
     }
 
     /**
@@ -1108,7 +1117,7 @@ var pgnBase = function (boardId, configuration) {
         toggleColorMarker();
         updateUI(next);
 
-        if(that.configuration.analysis) analyseFen();
+        if(that.configuration.analysis) sf.analyseFen();
     };
 
     /**

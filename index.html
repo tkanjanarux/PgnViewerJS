@@ -1,12 +1,53 @@
 <!DOCTYPE html>
-<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
-<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
-<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
-<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
-<head>
 
-    <!-- Basic Page Needs
-  ================================================== -->
-    <meta http-equiv="refresh" content="0; url=/PgnViewerJS/docu/index.html" />
+<head>
+    <link href="dist/css/third.css" rel="stylesheet">
+    <link href="css/theme.css" rel="stylesheet">
+    <link href="css/analysis.css" rel="stylesheet">
+    <link href="css/pgnvjs.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.js"></script>
+    <script src="chess.js/thchess.js" type="text/javascript"></script>
+    <script src="js/chessground.js" type="text/javascript"></script>
+    <script src="dist/js/third.js" type="text/javascript"></script>
+    <script src="js/draw-board.js" type="text/javascript"></script>
+    <script src="js/pgn.js" type="text/javascript"></script>
+    <script src="js/pgnvjs.js" type="text/javascript"></script>
 </head>
-<body></body></html>
+
+<body>
+        <div id="board" style="width: 900px; 
+        margin-top: 50px;"></div>
+    <script>
+        var pgn = `[Event "?"][Site "PlayOK"][Date "2020.05.20"][Round "-"][White "dmb8878"][Black "def123"][Result "*"][Time "18:38:21"][TimeControl "900"][WhiteElo "1210"]
+[BlackElo "1219"]
+
+1. h4 f5 2. Ne2 Nf6 3. Qf2 Bf7 4. Bg2 c5 5. Nd2 Nc6 6. Kc2 Bc7 7. Bb2 Kd7 8. e4
+Qe7 9. Qe3 e5 10. c4 Be6 11. Bh3 h5 12. exf5 Bxf5 13. Rag1 d5 14. cxd5 Nxd5 15.
+Nf1 Qf6 16. Bc3 b5 17. g4 hxg4 18. fxg4 Be6 19. g5 Qe7 20. a4 bxa4 21. bxa4 Qd6
+22. Bg4 Raf8 23. Neg3 Bb6 24. Bc4 Nde7 25. Nd2 Bd5 26. Bxd5 Nxd5 27. Re1 Ba5
+28. Nge4 Bxa4 29. Nc4 Qc7 30. Nxc5+ Kc8 31. Nxa4 Ncb4+ 32. Kd2 Re8 33. Nc5 Nc6
+34. Ne4 Ndb4 35. Nf6 Rd8 36. Ke2 Nxd3 37. Rd1 Ndb4 38. Rxd8+ Kxd8 39. Bf3 Ke7
+40. Be4 Qd6 41. Bd5 Nxd5 42. Nxd5+ Kd7 43. Nf6+ Ke6 44. Ne4 Qc7 45. Nc5+ Kd5
+46. Nxa6 Kxc4 47. Nxc7 Kc5 48. Rc1+ Kd6 49. Nb5+ Kd7 50. Rd1+ Ke7 51. Rh1 Rb8
+52. Nc3 Rb2+ 53. Kf3 Rb3 54. Ne4 Nd4+ 55. Kf2 Rb2+ 56. Qd2 Nf5 57. Ke2 Rb4 58.
+Nc3 Ng3+ 59. Kd3 Rd4+ 60. Ke3 Nxh1 61. Ne4 *
+
+`
+        var fen = 'rnbqk1n1/4b3/ppp2p1p/3p1Q2/5N2/PPPPP3/8/R1BKQr2 b Qq - 1 13';
+        var board = pgnEdit('board', {
+            showFen: false,
+            pieceStyle: 'makruk', 
+            theme: 'brown',
+            // position: fen, 
+            pgn: pgn,
+            analysis: true,
+            layout: 'left',
+            width: '900px',
+            boardSize: '448px',
+            movesWidth: '400px', 
+            movesHeight: '300px'
+        });
+    </script>
+</body>
+
+</html>

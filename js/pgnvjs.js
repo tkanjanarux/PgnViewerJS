@@ -589,7 +589,18 @@ var pgnBase = function (boardId, configuration) {
         function updateSuggestion({suggestMoves, depth, isMate, ev}) {
             let text = '';
             if(isMate && depth === 15) text += `รุกฆาตใน ${ev} ตา\n`
-            document.getElementById('suggest').innerText = text + suggestMoves.slice(0,10).map((move) => move.san).join(', ');
+            if(depth === 15) {
+                let suggestEle = document.getElementById('suggest');
+                suggestEle.innerHTML = '';
+                suggestMoves.slice(0,10).forEach((move, index) => {
+                    let a = createEle('a', null, "suggest-span ", null, suggestEle);
+                    a.innerText = `${move.san}, `;
+                    let span = createEle('span', 'svg' + index, "svg", null, a);
+                    addFenToSVG(move, '#svg' + index);
+                });
+            } else {
+                document.getElementById('suggest').innerText = text + suggestMoves.slice(0,10).map((move) => move.san).join(', ');
+            }
         }
 
         function updateLastMove({notation, verdict, depth}) {

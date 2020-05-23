@@ -32,16 +32,24 @@
 .suggest {
   word-break: break-word;
 }
-span#svg {
+span.svg {
   display: none;
 }
-a {
+a.suggest-span {
+  cursor: pointer;
   position: relative;
+  z-index: 9999;
+}
+a.suggest-span:hover {
+  background-color: yellow;
 }
 
-a:hover span#svg {
+a:hover span.svg {
+  cursor: pointer;
   display: inline;
   position: absolute;
+  top: 20px;
+  left: -60px;
 }
 .feedback-container {
   background-color: rgb(241, 241, 241);
@@ -64,13 +72,13 @@ body {
   justify-content: space-between;
   max-width: 100%;
   padding: 0 15px;
+  overflow: visible;
 }
 .feedback-line {
   display: flex;
   flex: 1;
   flex-wrap: wrap;
   justify-content: space-between;
-  overflow: hidden;
 }
 .lastmove {
   align-items: flex-start;
@@ -83,17 +91,15 @@ body {
 }
 .suggest {
   position: relative;
-  width: calc(100% - 6.4rem);
+  width: 80%;
   border-top: 0.1rem solid #e8e7e6;
   border-bottom: 0.1rem solid #e8e7e6;
   font-size: 14px;
-  overflow: hidden;
   padding: 10px 0;
   position: relative;
   text-indent: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
-  width: 100%;
 }
 .buttons {
   display: flex;

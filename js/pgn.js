@@ -246,6 +246,7 @@ const pgnReader = function (configuration, chess) {
     };
     that.PROMOTIONS = {
         'q': 'queen',
+        'm': 'med',
         'r': 'rook',
         'b': 'bishop',
         'n': 'knight'

@@ -93,7 +93,7 @@ var pgnBase = function (boardId, configuration) {
         notation: 'short',
         analysis: false
     };
-    that.promMappings = {q: 'queen', r: 'rook', b: 'bishop', n: 'knight'};
+    that.promMappings = {q: 'queen',m: 'med', r: 'rook', b: 'bishop', n: 'knight'};
     that.configuration = Object.assign(Object.assign(defaults, PgnBaseDefaults), configuration);
     let game = new Chess();
     that.mypgn = pgnReader(that.configuration, game); // Use the same instance from chess.js
@@ -255,7 +255,7 @@ var pgnBase = function (boardId, configuration) {
         var cur = that.currentMove;
         let primMove = {from: from, to: to};
         if ((that.mypgn.game.get(from).type == 'p') && ((to.substring(1, 2) == '6') || (to.substring(1, 2) == '3'))) {
-            primMove.promotion = 'q';
+            primMove.promotion = 'm';
         }
         that.currentMove = that.mypgn.addMove(primMove, cur);
         var move = that.mypgn.getMove(that.currentMove);
@@ -680,7 +680,7 @@ var pgnBase = function (boardId, configuration) {
                     promotion = move.substring(4, 5),
                     toMove = {to, from};
 
-                if(promotion === 'm') toMove.promotion = 'q';
+                if(promotion === 'm') toMove.promotion = 'm';
                 let m = tmpGame.move(toMove);
 
                 if(m) {
@@ -742,7 +742,7 @@ var pgnBase = function (boardId, configuration) {
                             else if (shift < 0.025) verdict = 'ปกติ';
                             else if (shift < 0.06) verdict = 'ไม่ดี';
                             else if (shift < 0.14) verdict = 'ผิด';
-                            else verdict = 'ผิดมาก';
+                            else verdict = 'ผิดถึงแพ้';
                             updateLastMove({notation: evalMove.notation.notation, verdict, depth: evalData.depth});
                         }
                     }
@@ -1189,13 +1189,13 @@ var pgnBase = function (boardId, configuration) {
             }
             var div_h = document.getElementById(headersId);
             var white = createEle('span', null, "whiteHeader", theme, div_h);
-            if (headers.White) {
-                white.appendChild(document.createTextNode(headers.White + " "));
+            if (headers.white) {
+                white.appendChild(document.createTextNode(headers.white + " "));
             }
             //div_h.appendChild(document.createTextNode(" - "));
             var black = createEle('span', null, "blackHeader", theme, div_h);
-            if (headers.Black) {
-                black.appendChild(document.createTextNode(" " + headers.Black));
+            if (headers.black) {
+                black.appendChild(document.createTextNode(" " + headers.black));
             }
             var rest = "";
             var appendHeader = function (result, header, separator) {
@@ -1207,8 +1207,8 @@ var pgnBase = function (boardId, configuration) {
                 }
                 return result;
             };
-            [headers.Event, headers.Site, headers.Round, headers.Date,
-                headers.ECO, headers.Result].forEach(function (header) {
+            [headers.event, headers.site, headers.round, headers.date,
+                headers.ECO, headers.result].forEach(function (header) {
                 rest = appendHeader(rest, header, " | ");
             });
             var restSpan = createEle("span", null, "restHeader", theme, div_h);

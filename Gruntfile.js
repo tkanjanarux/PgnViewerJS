@@ -10,7 +10,7 @@ module.exports = function(grunt) {
             all: {
                 src: [
                     //'js/polyfill.min.js',
-                    'chess.js/chess.js',
+                    'chess.js/thchess.js',
                     'js/chessground.js',
                     'js/i18next.js',
                     'js/i18nextXHRBackend.js',
@@ -27,8 +27,8 @@ module.exports = function(grunt) {
             },
             dev: {
                 src: [
-                    'chess.js/chess.js',
-                    'js/chessground.js',
+                    // 'chess.js/thchess.js',
+                    // 'js/chessground.js',
                     'js/i18next.js',
                     'js/i18nextXHRBackend.js',
                     'js/i18nextLocalStorageCache.js',
@@ -39,6 +39,24 @@ module.exports = function(grunt) {
                     'js/pgn-parser.js'
                 ],
                 dest: 'dist/js/third.js'
+            },
+            makruk: {
+                src: [
+                    'chess.js/thchess.js',
+                    'js/chessground.js',
+                    'js/i18next.js',
+                    'js/i18nextXHRBackend.js',
+                    'js/i18nextLocalStorageCache.js',
+                    'js/Timer.js',
+                    'js/smoothscroll.js',
+                    'js/sweetalert.min.js',
+                    'js/mousetrap.js',
+                    'js/draw-board.js',
+                    'js/pgn.js',
+                    'js/pgn-parser.js',
+                    'js/pgnvjs.js'
+                ],
+                dest: 'makruk/js/pgnvjs.js'
             }
         },
         uglify: {
@@ -91,6 +109,28 @@ module.exports = function(grunt) {
                         dest: 'dist/doc'
                     }
                 ]
+            },
+            makruk: {
+                files: [
+                    {
+                        src: [
+                            'locales/**',
+                            'img/chesspieces/**',
+                            'img/pattern/**',
+                            'img/*.png',
+                            'css/images/**',
+                            'node_modules/fairy-stockfish.js/*',
+                            'index.html'],
+                        dest: 'makruk',
+                        expand: true
+                    },
+                    {
+                        expand: true,
+                        cwd: 'font-awesome',
+                        src: 'fonts/**',
+                        dest: 'makruk'
+                    }
+                ]
             }
         },
         markdown: {
@@ -137,6 +177,17 @@ module.exports = function(grunt) {
                     'css/chessground.css'
                 ],
                 dest: 'dist/css/third.css'
+            },
+            makruk: {
+                src: [
+                    'font-awesome/css/font-awesome.css',
+                    'css/chessground.css',
+                    'css/theme.css',
+                    'css/analysis.css',
+                    'css/pgnvjs.css',
+                    'css/modal.css'
+                ],
+                dest: "makruk/css/pgnvjs.css"
             }
         }
 
@@ -158,6 +209,7 @@ module.exports = function(grunt) {
     grunt.registerTask('default', ['clean', 'concat:all', 'concat_css',  'copy:all', 'genExamples']);
     grunt.registerTask('debug', ['clean', 'concat:all', 'copy:all']);
     grunt.registerTask('dev', ['concat:dev', 'concat_css:dev']);
+    grunt.registerTask('makruk', ['concat:makruk', 'concat_css:makruk',  'copy:makruk']);
 
     /* Define the function and register it to generate the HTML example files in the documentation.
        This should be redone for each release then ...        */

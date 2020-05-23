@@ -1315,8 +1315,8 @@
             var util_1 = require("./util");
             var cg = require("./types");
             exports.initial = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
-            var roles = {p: 'pawn', r: 'rook', n: 'knight', b: 'bishop', q: 'queen', k: 'king'};
-            var letters = {pawn: 'p', rook: 'r', knight: 'n', bishop: 'b', queen: 'q', king: 'k'};
+            var roles = {p: 'pawn', r: 'rook', n: 'knight', b: 'bishop', q: 'queen', m: 'med', k: 'king'};
+            var letters = {pawn: 'p', rook: 'r', knight: 'n', bishop: 'b', queen: 'q', med: 'm', king: 'k'};
 
             function read(fen) {
                 if (fen === 'start')
@@ -1410,6 +1410,9 @@
             var queen = function (x1, y1, x2, y2) {
                 return bishop(x1, y1, x2, y2) || rook(x1, y1, x2, y2);
             };
+            var med = function (x1, y1, x2, y2) {
+                return bishop(x1, y1, x2, y2) || rook(x1, y1, x2, y2);
+            };
 
             function king(color, rookFiles, canCastle) {
                 return function (x1, y1, x2, y2) {
@@ -1441,6 +1444,9 @@
                         break;
                     case 'rook':
                         mobility = rook;
+                        break;
+                    case 'med':
+                        mobility = med;
                         break;
                     case 'queen':
                         mobility = queen;

@@ -5,6 +5,7 @@
     <link href="css/theme.css" rel="stylesheet">
     <link href="css/analysis.css" rel="stylesheet">
     <link href="css/pgnvjs.css" rel="stylesheet">
+    <link href="css/modal.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.js"></script>
     <script src="chess.js/thchess.js" type="text/javascript"></script>
     <script src="js/chessground.js" type="text/javascript"></script>
@@ -15,8 +16,62 @@
 </head>
 
 <body>
-        <div id="board" style="width: 900px; 
-        margin-top: 50px;"></div>
+    <script type="text/javascript">
+        function newGame() {
+            var board = pgnEdit('board', {
+                showFen: false,
+                pieceStyle: 'makruk',
+                theme: 'brown',
+                analysis: true,
+                layout: 'left',
+                width: '900px',
+                boardSize: '448px',
+                movesWidth: '400px',
+                movesHeight: '300px'
+            });
+        }
+        function loadPGN() {
+            var board = pgnEdit('board', {
+                showFen: false,
+                pieceStyle: 'makruk',
+                theme: 'brown',
+                analysis: true,
+                pgn: document.getElementById('pgntext').value.replace(/P/g, 'M'),
+                layout: 'left',
+                width: '900px',
+                boardSize: '448px',
+                movesWidth: '400px',
+                movesHeight: '300px'
+            });
+            document.getElementById('pgntext').value = '';
+            closeModal();
+        }
+        function openModal() {
+            location.hash = '#pgnloader';
+        }
+        function closeModal() {
+            location.hash = '';
+        }
+    </script>
+
+    <div class="game-button-container">
+        <button class="game-button" onclick="newGame()">เริ่มต้นใหม่</button>
+        <button class="game-button" onclick="openModal()">โหลดเกมส์</button>
+    </div>
+
+    <div class="modal" id="pgnloader">
+        <div class="modal-container pgntext-container">
+            <textarea id="pgntext"></textarea>
+            <div class="game-button-container">
+                <button class="game-button" onclick="loadPGN()">ตกลง</button>
+                <button class="game-button" onclick="closeModal()">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="body">
+        <div id="board" style="width: 900px; margin-top: 10px;"></div>
+    </div>
     <script>
         var pgn = `[Event "?"][Site "PlayOK"][Date "2020.05.20"][Round "-"][White "dmb8878"][Black "def123"][Result "*"][Time "18:38:21"][TimeControl "900"][WhiteElo "1210"]
 [BlackElo "1219"]
@@ -36,7 +91,7 @@ Nc3 Ng3+ 59. Kd3 Rd4+ 60. Ke3 Nxh1 61. Ne4 *
         var fen = 'rnbqk1n1/4b3/ppp2p1p/3p1Q2/5N2/PPPPP3/8/R1BKQr2 b Qq - 1 13';
         var board = pgnEdit('board', {
             showFen: false,
-            pieceStyle: 'makruk', 
+            pieceStyle: 'makruk',
             theme: 'brown',
             // position: fen, 
             pgn: pgn,
@@ -44,7 +99,7 @@ Nc3 Ng3+ 59. Kd3 Rd4+ 60. Ke3 Nxh1 61. Ne4 *
             layout: 'left',
             width: '900px',
             boardSize: '448px',
-            movesWidth: '400px', 
+            movesWidth: '400px',
             movesHeight: '300px'
         });
     </script>

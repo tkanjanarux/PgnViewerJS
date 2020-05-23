@@ -419,6 +419,9 @@
 .makruk  cg-board piece.queen.white {
   background-image: url('../img/chesspieces/makruk/wQ.png');
 }
+.makruk  cg-board piece.med.white {
+  background-image: url('../img/chesspieces/makruk/wM.png');
+}
 .makruk  cg-board piece.king.white {
   background-image: url('../img/chesspieces/makruk/wK.png');
 }
@@ -436,6 +439,9 @@
 }
 .makruk  cg-board piece.queen.black {
   background-image: url('../img/chesspieces/makruk/bQ.png');
+}
+.makruk  cg-board piece.med.black {
+  background-image: url('../img/chesspieces/makruk/bM.png');
 }
 .makruk  cg-board piece.king.black {
   background-image: url('../img/chesspieces/makruk/bK.png');

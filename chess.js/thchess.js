@@ -52,9 +52,10 @@ var Chess = function(fen) {
   var BISHOP = 'b';
   var ROOK = 'r';
   var QUEEN = 'q';
+  var MED = 'm';
   var KING = 'k';
 
-  var SYMBOLS = 'pnbrqkPNBRQK';
+  var SYMBOLS = 'pnbrqmkPNBRQMK';
 
   var DEFAULT_POSITION = 'rnbqkbnr/8/pppppppp/8/8/PPPPPPPP/8/RNBKQBNR w KQkq - 0 1';
 
@@ -74,6 +75,7 @@ var Chess = function(fen) {
     n: [-18, -33, -31, -14,  18, 33, 31,  14],
     r: [-16,   1,  16,  -1],
     q: [-17, -15,  17,  15],
+    m: [-17, -15,  17,  15],
     k: [-17, -16, -15,   1,  17, 16, 15,  -1]
   };
 
@@ -313,7 +315,7 @@ var Chess = function(fen) {
           sum_fields += parseInt(rows[i][k], 10);
           previous_was_number = true;
         } else {
-          if (!/^[prnbqkPRNBQK]$/.test(rows[i][k])) {
+          if (!/^[prnbqmkPRNBQMK]$/.test(rows[i][k])) {
             return {valid: false, error_number: 9, error: errors[9]};
           }
           sum_fields += 1;
@@ -481,7 +483,7 @@ var Chess = function(fen) {
       /* if pawn promotion */
       if (board[from].type === PAWN &&
          (rank(to) === RANK_6 || rank(to) === RANK_3)) {
-          var pieces = [QUEEN, ROOK, BISHOP, KNIGHT];
+          var pieces = [QUEEN, MED];
           for (var i = 0, len = pieces.length; i < len; i++) {
             moves.push(build_move(board, from, to, flags, pieces[i]));
           }
